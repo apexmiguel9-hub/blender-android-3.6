@@ -109,20 +109,20 @@ jobs:
             '#define BUILD_LINKFLAGS ""' \
             '#define BUILD_SYSTEM "CMake"' \
             > "${{ github.workspace }}/blender36/source/creator/buildinfo.h"
-      - name: Patch NDK version and add IMB_ffmpeg_init stub
+      - name: Patch NDK version and fix compatibility
         run: |
           set -ex
           cd OBlender
-          # Fix NDK version: NDK 27+ required for ARMv8.1 atomics used by our .a
-          find app/build.gradle -exec sed -i "s|ndkVersion .*|ndkVersion \x2727.3.13750724\x27|" {} +
-          echo "NDK version after patch:"
-          grep "ndkVersion" app/build.gradle
+          sed -i "s|ndkVersion .*|ndkVersion '27.3.13750724'|" app/build.gradle
+          echo "NDK: $(grep ndkVersion app/build.gradle)"
           cd app/src/main/cpp
-          # Add IMB_ffmpeg_init stub (not compiled in .a since ffmpeg not available for Android)
-          printf "\x0a#include <stdio.h>\x0avoid IMB_ffmpeg_init(void) { fprintf(stderr, \"IMB_ffmpeg_init: stub\n\"); }\x0a" >> native-lib.cpp
-          echo "IMB_ffmpeg_init stub added to native-lib.cpp"
-
-      - name: Setup Java 11
+          sed -i 's|ALooper_pollAll|ALooper_pollOnce|g' native-lib.cpp
+          echo "ALooper_pollAll -> ALooper_pollOnce"
+          printf '%s\n' '#include <stdio.h>'             'void IMB_ffmpeg_init(void) {'             '    fprintf(stderr, "IMB_ffmpeg_init: stub\n");'             '}' > imb_ffmpeg_stub.cc
+          sed -i '/creator\/creator_signals.cc/a creator/imb_ffmpeg_stub.cc' CMakeLists.txt
+          echo "IMB_ffmpeg_init stub added"
+          sed -i '/add_definitions(-DWITH_LIBMV)/a add_definitions(-DBOOST_NO_CXX98_FUNCTION_BASE)' CMakeLists.txt
+          echo "Boost compat flag added"      - name: Setup Java 11
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
