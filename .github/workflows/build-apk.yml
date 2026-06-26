@@ -1,6 +1,8 @@
 name: Build Blender Android APK
 
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
   # Trigger when BlenderMobile pushes new .a files
   repository_dispatch:
