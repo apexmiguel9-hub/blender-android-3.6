@@ -185,10 +185,10 @@ jobs:
 
         run: chmod +x OBlender/gradlew
 
-      - name: Build Release APK
+      - name: Build Debug APK (auto-signed)
         working-directory: OBlender
         run: |
-          ./gradlew assembleRelease --no-daemon -x lint
+          ./gradlew assembleDebug --no-daemon -x lint
 
       - name: Find and strip libblender.so
         run: |
@@ -203,7 +203,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: blender-apk
-          path: OBlender/app/build/outputs/apk/release/*.apk
+          path: OBlender/app/build/outputs/apk/debug/*.apk
 
       - name: Upload stripped libblender.so artifact
         if: always()
