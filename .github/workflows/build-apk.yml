@@ -66,8 +66,7 @@ jobs:
             echo "gradle-wrapper.jar not found, generating..."
             # Generate wrapper using gradle (pre-installed on runner)
             cd OBlender
-            gradle wrapper --gradle-version=8.0.2 2>&1 || \
-            gradle wrapper 2>&1 || \
+            gradle wrapper --gradle-version=6.5 2>&1 || \
             echo "WARNING: could not generate gradle wrapper"
             cd ..
           fi
