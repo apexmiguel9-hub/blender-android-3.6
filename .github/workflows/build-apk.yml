@@ -35,7 +35,7 @@ jobs:
           name: blender-a-libraries
           path: blender-libs
           repository: apexmiguel9-hub/Blender3.6_arm64
-          run-id: ${{ github.event.client_payload.run_id }}
+          run-id: ${{ inputs.run_id || github.event.client_payload.run_id || "28250301432" }}
           github-token: ${{ secrets.GH_TOKEN }}
 
       - name: Copy .a files and patch CMakeLists.txt paths
