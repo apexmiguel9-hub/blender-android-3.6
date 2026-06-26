@@ -127,13 +127,13 @@ jobs:
           sed -i '/creator\/creator_signals.cc/a creator/imb_ffmpeg_stub.cc' CMakeLists.txt
           echo "IMB_ffmpeg_init stub added"
           # Auto-generate stubs for undefined AUD_* symbols from .a files
-          cd "${{ github.workspace }}/blender-libs"
-          for f in libbf_*.a libextern_*.a; do
-            [ -f "$f" ] || continue
-            nm -u "$f" 2>/dev/null | grep -o 'AUD_[a-zA-Z0-9_]*'
-          done | sort -u > /tmp/aud_symbols.txt
-          cd "${{ github.workspace }}/OBlender/app/src/main/cpp"
+          find "${{ github.workspace }}/blender-static-libs" -name "*.a" \
+            -exec nm -u {} \; 2>/dev/null \
+            | grep -o 'AUD_[a-zA-Z0-9_]*' \
+            | sort -u > /tmp/aud_symbols.txt
           COUNT=$(wc -l < /tmp/aud_symbols.txt)
+          echo "Found $COUNT AUD_ symbols via nm"
+          cd "${{ github.workspace }}/OBlender/app/src/main/cpp"
           {
             echo '#include <stdio.h>'
             echo 'extern "C" {'
@@ -143,7 +143,7 @@ jobs:
             echo '}'
             echo 'extern "C" void PyInit_aud(void) { fprintf(stderr, "stub: PyInit_aud\\n"); }'
           } > creator/audaspace_stubs.cc
-          echo "Generated $COUNT AUD_ stubs + PyInit_aud"
+          echo "Created stubs for $COUNT AUD_ symbols + PyInit_aud"
           sed -i '/creator\/imb_ffmpeg_stub.cc/a creator/audaspace_stubs.cc' CMakeLists.txt
           echo "Audaspace stubs added"
           sed -i '/add_definitions(-DWITH_LIBMV)/a add_definitions(-DBOOST_NO_CXX98_FUNCTION_BASE)' CMakeLists.txt
