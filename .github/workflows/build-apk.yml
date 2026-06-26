@@ -200,8 +200,8 @@ jobs:
           # Set minSdk and targetSdk to 24 for API 24 compatibility
           sed -i 's/minSdkVersion .*/minSdkVersion 24/' app/build.gradle
           sed -i 's/targetSdkVersion .*/targetSdkVersion 24/' app/build.gradle
-                    sed -i 's/minSdkVersion 28/minSdkVersion 24/' OBLFiles/build.gradle
-echo "SDK: $(grep -E 'minSdk|targetSdk' app/build.gradle)"
+          sed -i 's/minSdkVersion 28/minSdkVersion 24/' OBLFiles/build.gradle
+          echo "SDK: $(grep -E 'minSdk|targetSdk' app/build.gradle)"
           # Spanish permission rationale dialog
           sed -i 's/获取读写文件权限/Permiso de almacenamiento/g' \
             app/src/main/java/com/epai/oblender/StartupActivity.java
