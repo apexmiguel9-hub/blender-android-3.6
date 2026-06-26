@@ -60,6 +60,33 @@ jobs:
           echo "CMakeLists.txt patched"
           grep "blenderLibLibDirRelease" CMakeLists.txt
           grep "IMPORTED_LOCATION" CMakeLists.txt | head -3
+      - name: Create stubs for missing .a files
+        run: |
+          set -ex
+          LIB_DIR="${{ github.workspace }}/blender-static-libs"
+          # Parse BlenderLibNames from CMakeLists.txt and create stubs for missing .a
+          cd OBlender/app/src/main/cpp
+          IN_BLOCK=0
+          while IFS= read -r line; do
+            if echo "$line" | grep -q "SET(BlenderLibNames"; then
+              IN_BLOCK=1
+              continue
+            fi
+            if [ "$IN_BLOCK" = 1 ] && echo "$line" | grep -q ")"; then
+              break
+            fi
+            if [ "$IN_BLOCK" = 1 ]; then
+              lib=$(echo "$line" | xargs)
+              if [ -n "$lib" ]; then
+                libfile="$LIB_DIR/lib${lib}.a"
+                if [ ! -f "$libfile" ]; then
+                  echo "Creating stub: lib${lib}.a"
+                  ar crs "$libfile"
+                fi
+              fi
+            fi
+          done < CMakeLists.txt
+          echo "Stub creation complete"
 
       - name: Setup Java 11
         uses: actions/setup-java@v4
