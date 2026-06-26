@@ -118,23 +118,44 @@ jobs:
           cd app/src/main/cpp
           sed -i 's|ALooper_pollAll|ALooper_pollOnce|g' native-lib.cpp
           echo "ALooper_pollAll -> ALooper_pollOnce"
-          printf '%s\n' '#include <stdio.h>'             'void IMB_ffmpeg_init(void) {'             '    fprintf(stderr, "IMB_ffmpeg_init: stub\n");'             '}' > creator/imb_ffmpeg_stub.cc
+          WS="${{ github.workspace }}"
+          # IMB_ffmpeg_init stub (needs extern "C" for C linkage)
+          printf '%s\n' '#include <stdio.h>' \
+            'extern "C" void IMB_ffmpeg_init(void) {' \
+            '    fprintf(stderr, "IMB_ffmpeg_init: stub\n");' \
+            '}' > creator/imb_ffmpeg_stub.cc
           sed -i '/creator\/creator_signals.cc/a creator/imb_ffmpeg_stub.cc' CMakeLists.txt
           echo "IMB_ffmpeg_init stub added"
+          # Audaspace stubs for missing AUD_*, Sound_*, PyInit_aud symbols
+          printf '%s\n' '#include <stdio.h>' \
+            'extern "C" {' \
+            'void PyInit_aud(void) { fprintf(stderr, "stub: PyInit_aud\\n"); }' \
+            'void* AUD_Sound_create(void* s) { (void)s; return NULL; }' \
+            'void* AUD_Sound_copy(void* s) { (void)s; return NULL; }' \
+            'void AUD_Sound_free(void* s) { (void)s; }' \
+            'void* AUD_mixdown(void* s, unsigned int l, unsigned int bs, unsigned int ch, unsigned int r, void* buf) { (void)s; (void)l; (void)bs; (void)ch; (void)r; (void)buf; return NULL; }' \
+            'void* AUD_mixdown_per_channel(void* s, unsigned int l, unsigned int bs, unsigned int ch, unsigned int r, void* buf) { (void)s; (void)l; (void)bs; (void)ch; (void)r; (void)buf; return NULL; }' \
+            'void* AUD_readSoundBuffer(const char* n, int a, int b, int c, int d, int e) { (void)n; (void)a; (void)b; (void)c; (void)d; (void)e; return NULL; }' \
+            '}' \
+            'void Sound_empty() { fprintf(stderr, "stub: Sound_empty\\n"); }' > creator/audaspace_stubs.cc
+          sed -i '/creator\/imb_ffmpeg_stub.cc/a creator/audaspace_stubs.cc' CMakeLists.txt
+          echo "Audaspace stubs added"
           sed -i '/add_definitions(-DWITH_LIBMV)/a add_definitions(-DBOOST_NO_CXX98_FUNCTION_BASE)' CMakeLists.txt
+          # Add OpenMP to linker flags (for __kmpc_* / omp_* symbols)
+          sed -i '/-Wl,--end-group/a\        -fopenmp' CMakeLists.txt
+          echo "OpenMP flag added to linker"
           # Patch Boost headers for C++17 / NDK 27 compatibility
-          WS="${{ github.workspace }}"
           # Fix std::unary_function usage in boost/container_hash/hash.hpp
           HASH="$WS/lib-android_arm64/boost/boost_1_71_0/boost/container_hash/hash.hpp"
           sed -i 's/struct hash_base : std::unary_function<T, std::size_t> {};/struct hash_base { typedef T argument_type; typedef std::size_t result_type; };/' "$HASH"
-          echo "Fixed boost/container_hash/hash.hpp - replaced unary_function inheritance"
+          echo "Fixed boost/container_hash/hash.hpp"
           # Fix enum-constexpr-conversion warning in boost/mpl/aux_/integral_wrapper.hpp
           IW="$WS/lib-android_arm64/boost/boost_1_71_0/boost/mpl/aux_/integral_wrapper.hpp"
           printf '%s\n' '#pragma clang diagnostic push' \
             '#pragma clang diagnostic ignored "-Wenum-constexpr-conversion"' > /tmp/iw_prefix.hpp
           cat /tmp/iw_prefix.hpp "$IW" > /tmp/iw_patched.hpp && cp /tmp/iw_patched.hpp "$IW"
           echo '#pragma clang diagnostic pop' >> "$IW"
-          echo "Patched boost/mpl/aux_/integral_wrapper.hpp for enum warning"
+          echo "Patched boost/mpl/aux_/integral_wrapper.hpp"
           echo "Boost compat flag added"
       - name: Cache Gradle
         uses: actions/cache@v4
