@@ -123,25 +123,17 @@ jobs:
           echo "IMB_ffmpeg_init stub added"
           sed -i '/add_definitions(-DWITH_LIBMV)/a add_definitions(-DBOOST_NO_CXX98_FUNCTION_BASE)' CMakeLists.txt
           # Patch Boost headers for C++17 / NDK 27 compatibility
-          # Fix std::unary_function (removed in C++17) in boost/container_hash/hash.hpp
           WS="${{ github.workspace }}"
-          HASH_FILE="$WS/lib-android_arm64/boost/boost_1_71_0/boost/container_hash/hash.hpp"
-          printf '%s\n' '#if __cplusplus >= 201703L' 'namespace std {' \
-            'template<class Arg, class Result>' \
-            'struct unary_function {' \
-            '    typedef Arg argument_type;' \
-            '    typedef Result result_type;' \
-            '};' '}' '#endif' > /tmp/hash_prefix.hpp
-          cat /tmp/hash_prefix.hpp "$HASH_FILE" > /tmp/hash_patched.hpp
-          cp /tmp/hash_patched.hpp "$HASH_FILE"
-          echo "Patched boost/container_hash/hash.hpp for std::unary_function"
+          # Fix std::unary_function usage in boost/container_hash/hash.hpp
+          HASH="$WS/lib-android_arm64/boost/boost_1_71_0/boost/container_hash/hash.hpp"
+          sed -i 's/struct hash_base : std::unary_function<T, std::size_t> {};/struct hash_base { typedef T argument_type; typedef std::size_t result_type; };/' "$HASH"
+          echo "Fixed boost/container_hash/hash.hpp - replaced unary_function inheritance"
           # Fix enum-constexpr-conversion warning in boost/mpl/aux_/integral_wrapper.hpp
-          IW_FILE="$WS/lib-android_arm64/boost/boost_1_71_0/boost/mpl/aux_/integral_wrapper.hpp"
+          IW="$WS/lib-android_arm64/boost/boost_1_71_0/boost/mpl/aux_/integral_wrapper.hpp"
           printf '%s\n' '#pragma clang diagnostic push' \
             '#pragma clang diagnostic ignored "-Wenum-constexpr-conversion"' > /tmp/iw_prefix.hpp
-          cat /tmp/iw_prefix.hpp "$IW_FILE" > /tmp/iw_patched.hpp
-          cp /tmp/iw_patched.hpp "$IW_FILE"
-          echo '#pragma clang diagnostic pop' >> "$IW_FILE"
+          cat /tmp/iw_prefix.hpp "$IW" > /tmp/iw_patched.hpp && cp /tmp/iw_patched.hpp "$IW"
+          echo '#pragma clang diagnostic pop' >> "$IW"
           echo "Patched boost/mpl/aux_/integral_wrapper.hpp for enum warning"
           echo "Boost compat flag added"
       - name: Cache Gradle
