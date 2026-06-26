@@ -118,7 +118,7 @@ jobs:
           cd app/src/main/cpp
           sed -i 's|ALooper_pollAll|ALooper_pollOnce|g' native-lib.cpp
           echo "ALooper_pollAll -> ALooper_pollOnce"
-          printf '%s\n' '#include <stdio.h>'             'void IMB_ffmpeg_init(void) {'             '    fprintf(stderr, "IMB_ffmpeg_init: stub\n");'             '}' > imb_ffmpeg_stub.cc
+          printf '%s\n' '#include <stdio.h>'             'void IMB_ffmpeg_init(void) {'             '    fprintf(stderr, "IMB_ffmpeg_init: stub\n");'             '}' > creator/imb_ffmpeg_stub.cc
           sed -i '/creator\/creator_signals.cc/a creator/imb_ffmpeg_stub.cc' CMakeLists.txt
           echo "IMB_ffmpeg_init stub added"
           sed -i '/add_definitions(-DWITH_LIBMV)/a add_definitions(-DBOOST_NO_CXX98_FUNCTION_BASE)' CMakeLists.txt
