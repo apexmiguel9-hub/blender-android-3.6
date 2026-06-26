@@ -1,10 +1,12 @@
 name: Build Blender Android APK
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
-  # Trigger when BlenderMobile pushes new .a files
+    inputs:
+      run_id:
+        description: "Blender build run ID"
+        required: false
+        type: string
   repository_dispatch:
     types: [blender-libs-updated]
 
