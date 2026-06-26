@@ -147,9 +147,26 @@ jobs:
           sed -i '/creator\/imb_ffmpeg_stub.cc/a creator/audaspace_stubs.cc' CMakeLists.txt
           echo "Audaspace stubs added"
           sed -i '/add_definitions(-DWITH_LIBMV)/a add_definitions(-DBOOST_NO_CXX98_FUNCTION_BASE)' CMakeLists.txt
-          # Add OpenMP to linker flags (for __kmpc_* / omp_* symbols)
-          printf '\nset(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -fopenmp")\n' >> CMakeLists.txt
-          echo "OpenMP flag added to linker"
+          # Create OpenMP stubs instead of linking libomp.so
+          printf '%s\n' \
+            'extern "C" {' \
+            '#include <stdio.h>' \
+            'int __kmpc_global_thread_num(void *loc) { return 0; }' \
+            'void __kmpc_fork_call(void *loc, int argc, void *microtask, ...) { fprintf(stderr, "stub: __kmpc_fork_call\\n"); }' \
+            'void __kmpc_serialized_parallel(void *loc, int gtid) { fprintf(stderr, "stub: __kmpc_serialized_parallel\\n"); }' \
+            'void __kmpc_end_serialized_parallel(void *loc, int gtid) { fprintf(stderr, "stub: __kmpc_end_serialized_parallel\\n"); }' \
+            'void __kmpc_for_static_init_4(void *loc, int gtid, int *last, int *lwr, int *upr, int *stride, int incr, int chunk) { fprintf(stderr, "stub: __kmpc_for_static_init_4\\n"); }' \
+            'void __kmpc_for_static_fini(void *loc, int gtid) { fprintf(stderr, "stub: __kmpc_for_static_fini\\n"); }' \
+            'void __kmpc_push_num_threads(void *loc, int gtid, int num) { fprintf(stderr, "stub: __kmpc_push_num_threads\\n"); }' \
+            'void __kmpc_dispatch_init_8(void *loc, int gtid, int incr, long long chunk) { fprintf(stderr, "stub: __kmpc_dispatch_init_8\\n"); }' \
+            'int __kmpc_dispatch_next_8(void *loc, int gtid, int *last, long long *lwr, long long *upr, long long *stride) { fprintf(stderr, "stub: __kmpc_dispatch_next_8\\n"); return 0; }' \
+            'int omp_get_max_threads(void) { return 1; }' \
+            'int omp_get_thread_num(void) { return 0; }' \
+            'int omp_get_num_threads(void) { return 1; }' \
+            '}' > creator/omp_stubs.cc
+          echo "OpenMP stubs file created"
+          sed -i '/creator\/audaspace_stubs.cc/a creator/omp_stubs.cc' CMakeLists.txt
+          echo "OpenMP stubs added"
           # Patch Boost headers for C++17 / NDK 27 compatibility
           # Fix std::unary_function usage in boost/container_hash/hash.hpp
           HASH="$WS/lib-android_arm64/boost/boost_1_71_0/boost/container_hash/hash.hpp"
