@@ -126,18 +126,24 @@ jobs:
             '}' > creator/imb_ffmpeg_stub.cc
           sed -i '/creator\/creator_signals.cc/a creator/imb_ffmpeg_stub.cc' CMakeLists.txt
           echo "IMB_ffmpeg_init stub added"
-          # Audaspace stubs for missing AUD_*, Sound_*, PyInit_aud symbols
-          printf '%s\n' '#include <stdio.h>' \
-            'extern "C" {' \
-            'void PyInit_aud(void) { fprintf(stderr, "stub: PyInit_aud\\n"); }' \
-            'void* AUD_Sound_create(void* s) { (void)s; return NULL; }' \
-            'void* AUD_Sound_copy(void* s) { (void)s; return NULL; }' \
-            'void AUD_Sound_free(void* s) { (void)s; }' \
-            'void* AUD_mixdown(void* s, unsigned int l, unsigned int bs, unsigned int ch, unsigned int r, void* buf) { (void)s; (void)l; (void)bs; (void)ch; (void)r; (void)buf; return NULL; }' \
-            'void* AUD_mixdown_per_channel(void* s, unsigned int l, unsigned int bs, unsigned int ch, unsigned int r, void* buf) { (void)s; (void)l; (void)bs; (void)ch; (void)r; (void)buf; return NULL; }' \
-            'void* AUD_readSoundBuffer(const char* n, int a, int b, int c, int d, int e) { (void)n; (void)a; (void)b; (void)c; (void)d; (void)e; return NULL; }' \
-            '}' \
-            'void Sound_empty() { fprintf(stderr, "stub: Sound_empty\\n"); }' > creator/audaspace_stubs.cc
+          # Auto-generate stubs for undefined AUD_* symbols from .a files
+          cd "${{ github.workspace }}/blender-libs"
+          for f in libbf_*.a libextern_*.a; do
+            [ -f "$f" ] || continue
+            nm -u "$f" 2>/dev/null | grep -o 'AUD_[a-zA-Z0-9_]*'
+          done | sort -u > /tmp/aud_symbols.txt
+          cd "${{ github.workspace }}/OBlender/app/src/main/cpp"
+          COUNT=$(wc -l < /tmp/aud_symbols.txt)
+          {
+            echo '#include <stdio.h>'
+            echo 'extern "C" {'
+            while read -r sym; do
+              echo "void ${sym}() { fprintf(stderr, \"stub: ${sym}\\\\n\"); }"
+            done < /tmp/aud_symbols.txt
+            echo '}'
+            echo 'extern "C" void PyInit_aud(void) { fprintf(stderr, "stub: PyInit_aud\\n"); }'
+          } > creator/audaspace_stubs.cc
+          echo "Generated $COUNT AUD_ stubs + PyInit_aud"
           sed -i '/creator\/imb_ffmpeg_stub.cc/a creator/audaspace_stubs.cc' CMakeLists.txt
           echo "Audaspace stubs added"
           sed -i '/add_definitions(-DWITH_LIBMV)/a add_definitions(-DBOOST_NO_CXX98_FUNCTION_BASE)' CMakeLists.txt
