@@ -1,9 +1,10 @@
 name: Build Blender Android APK
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
+  # Trigger when BlenderMobile pushes new .a files
+  repository_dispatch:
+    types: [blender-libs-updated]
 
 jobs:
   build:
@@ -14,6 +15,27 @@ jobs:
     steps:
       - name: Checkout app repo
         uses: actions/checkout@v4
+
+      - name: Download Blender .a libraries
+        uses: actions/download-artifact@v4
+        with:
+          name: blender-a-libraries
+          path: blender-libs
+          repository: apexmiguel9-hub/Blender3.6_arm64
+          # Optional: specify run-id if needed
+          # run-id: ${{ github.event.client_payload.run_id }}
+
+      - name: Copy .a files to CMake lib directory
+        run: |
+          set -ex
+          LIB_DIR="OBlender/app/src/main/cpp/../.cxx/cmake/release/arm64-v8a/lib"
+          mkdir -p "$LIB_DIR"
+          cp blender-libs/libbf_*.a "$LIB_DIR/" 2>/dev/null || true
+          cp blender-libs/libextern_*.a "$LIB_DIR/" 2>/dev/null || true
+          cp blender-libs/libcycles_*.a "$LIB_DIR/" 2>/dev/null || true
+          COUNT=$(find "$LIB_DIR" -name "*.a" | wc -l)
+          echo "Copied $COUNT .a files to $LIB_DIR"
+          ls -la "$LIB_DIR" | head -20
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -60,14 +82,6 @@ jobs:
         with:
           name: blender-apk
           path: OBlender/app/build/outputs/apk/release/*.apk
-
-      - name: Upload stripped libblender.so
-        run: |
-          find . -name "libblender.so" -type f 2>/dev/null | while read so_file; do
-            mkdir -p artifacts
-            cp "$so_file" artifacts/
-          done
-        # Note: uses upload-artifact in next step
 
       - name: Upload stripped libblender.so artifact
         if: always()
