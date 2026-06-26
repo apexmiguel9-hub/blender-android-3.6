@@ -94,19 +94,20 @@ jobs:
       - name: Generate buildinfo.h stub
         run: |
           set -ex
-          cat > ${{ github.workspace }}/blender36/source/creator/buildinfo.h << "EOF"
-#define BUILD_DATE "2024-01-01"
-#define BUILD_TIME "00:00:00"
-#define BUILD_HASH "stub"
+          python3 -c "
+open(\"${{ github.workspace }}/blender36/source/creator/buildinfo.h\", \"w\").write(\"\"\"
+#define BUILD_DATE \"2024-01-01\"
+#define BUILD_TIME \"00:00:00\"
+#define BUILD_HASH \"stub\"
 #define BUILD_COMMIT_TIMESTAMP 0
-#define BUILD_BRANCH "stub"
-#define BUILD_PLATFORM "Android"
-#define BUILD_TYPE "Release"
-#define BUILD_CFLAGS ""
-#define BUILD_CXXFLAGS ""
-#define BUILD_LINKFLAGS ""
-#define BUILD_SYSTEM "CMake"
-EOF
+#define BUILD_BRANCH \"stub\"
+#define BUILD_PLATFORM \"Android\"
+#define BUILD_TYPE \"Release\"
+#define BUILD_CFLAGS \"\"
+#define BUILD_CXXFLAGS \"\"
+#define BUILD_LINKFLAGS \"\"
+#define BUILD_SYSTEM \"CMake\"
+\"\"\")
 
       - name: Setup Java 11
         uses: actions/setup-java@v4
