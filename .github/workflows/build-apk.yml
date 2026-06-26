@@ -57,17 +57,9 @@ jobs:
       - name: Download Gradle wrapper JAR
         run: |
           if [ ! -f OBlender/gradle/wrapper/gradle-wrapper.jar ]; then
-            echo "gradle-wrapper.jar not found, generating..."
-            # Generate wrapper JAR in a temp dir (avoids project's build.gradle
-            # which uses jcenter() - removed in Gradle 8+ on the runner)
-            TMPDIR=$(mktemp -d)
-            echo "" > "$TMPDIR/build.gradle"
-            cd "$TMPDIR"
-            gradle wrapper --gradle-version=6.5 2>&1
-            cp gradle/wrapper/gradle-wrapper.jar \
-              "$GITHUB_WORKSPACE/OBlender/gradle/wrapper/gradle-wrapper.jar"
-            cd "$GITHUB_WORKSPACE"
-            rm -rf "$TMPDIR"
+            echo "gradle-wrapper.jar not found, downloading from Gradle 6.5 release..."
+            curl -sL -o OBlender/gradle/wrapper/gradle-wrapper.jar \
+              "https://raw.githubusercontent.com/gradle/gradle/v6.5.0/gradle/wrapper/gradle-wrapper.jar"
           fi
 
       - name: Make gradlew executable
