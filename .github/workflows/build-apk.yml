@@ -22,8 +22,8 @@ jobs:
           name: blender-a-libraries
           path: blender-libs
           repository: apexmiguel9-hub/Blender3.6_arm64
-          # Optional: specify run-id if needed
-          # run-id: ${{ github.event.client_payload.run_id }}
+          run-id: ${{ github.event.client_payload.run_id }}
+          github-token: ${{ secrets.GH_TOKEN }}
 
       - name: Copy .a files to CMake lib directory
         run: |
