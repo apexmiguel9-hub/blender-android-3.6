@@ -40,25 +40,24 @@ jobs:
         run: |
           set -ex
           WS=${{ github.workspace }}
-          # Resolve the .cxx lib dir (src/main/cpp/../.cxx = .cxx)
-          LIB_DIR="OBlender/app/.cxx/cmake/release/arm64-v8a/lib"
+          # Copy to a separate directory (NOT .cxx which Gradle may recreate)
+          LIB_DIR="blender-static-libs"
           mkdir -p "$LIB_DIR"
           cp blender-libs/libbf_*.a "$LIB_DIR/" 2>/dev/null || true
           cp blender-libs/libextern_*.a "$LIB_DIR/" 2>/dev/null || true
           cp blender-libs/libcycles_*.a "$LIB_DIR/" 2>/dev/null || true
           COUNT=$(find "$LIB_DIR" -name "*.a" | wc -l)
           echo "Copied $COUNT .a files to $LIB_DIR"
-          # Verify a key file exists before Gradle runs
-          ls -la "$LIB_DIR/libbf_modifiers.a" 2>/dev/null || echo "WARNING: libbf_modifiers.a not found at $LIB_DIR"
-          echo "Build directory: $(pwd)"
-          # Patch hardcoded Windows paths in CMakeLists.txt
+          # Verify a key file exists
+          ls -la "$LIB_DIR/libbf_modifiers.a"
+          # Update CMakeLists.txt to point to our static dir
           cd OBlender/app/src/main/cpp
           sed -i "s|D:/FreeProjects/Blender/Blender/Blender-android_arm64|$WS/blender36|g" CMakeLists.txt
           sed -i "s|D:/FreeProjects/Blender/Blender/lib-android_arm64|$WS/lib-android_arm64|g" CMakeLists.txt
-          sed -i "s|D:/FreeProjects/Blender/Blender/Utilities-android_arm64/MakeBlender/app/\.cxx/cmake/release/arm64-v8a/|$WS/OBlender/app/.cxx/cmake/release/arm64-v8a/|g" CMakeLists.txt
-          sed -i "s|D:/FreeProjects/Blender/Blender/Utilities-android_arm64/MakeBlender/app/\.cxx/cmake/debug/arm64-v8a/|$WS/OBlender/app/.cxx/cmake/debug/arm64-v8a/|g" CMakeLists.txt
-          echo "CMakeLists.txt patched successfully"
-          # Verify patched CMakeLists.txt has correct paths
+          # Replace the lib dir with our blender-static-libs (NOT .cxx)
+          sed -i "s|D:/FreeProjects/Blender/Blender/Utilities-android_arm64/MakeBlender/app/\.cxx/cmake/release/arm64-v8a/lib|$WS/blender-static-libs|g" CMakeLists.txt
+          sed -i "s|D:/FreeProjects/Blender/Blender/Utilities-android_arm64/MakeBlender/app/\.cxx/cmake/debug/arm64-v8a/lib|$WS/blender-static-libs|g" CMakeLists.txt
+          echo "CMakeLists.txt patched"
           grep "blenderLibLibDirRelease" CMakeLists.txt
           grep "IMPORTED_LOCATION" CMakeLists.txt | head -3
 
