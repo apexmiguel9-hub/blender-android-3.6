@@ -178,10 +178,16 @@ jobs:
             # Copy new .so files
             find /tmp/openexr-install/lib -name "*.so" -exec cp {} "$WS/lib-android_arm64/OpenExr/lib/" \;
             find /tmp/imath-install/lib -name "*.so" -exec cp {} "$WS/lib-android_arm64/IMath/lib/" \;
+            # Also copy to jniLibs which is what CMake actually uses
+            mkdir -p "$WS/OBlender/app/src/main/jniLibs/arm64-v8a"
+            find /tmp/openexr-install/lib -name "*.so" -exec cp {} "$WS/OBlender/app/src/main/jniLibs/arm64-v8a/" \;
+            find /tmp/imath-install/lib -name "*.so" -exec cp {} "$WS/OBlender/app/src/main/jniLibs/arm64-v8a/" \;
             echo "Replaced OpenEXR .so files:"
             ls -la "$WS/lib-android_arm64/OpenExr/lib/" | grep -E "\.so$"
             echo "Replaced Imath .so files:"
             ls -la "$WS/lib-android_arm64/IMath/lib/" | grep -E "\.so$"
+            echo "Copied to jniLibs/arm64-v8a:"
+            ls -la "$WS/OBlender/app/src/main/jniLibs/arm64-v8a/" | grep -E "\.so$"
           else
             echo "=== OpenEXR build FAILED ==="
             tail -30 /tmp/openexr-build/CMakeFiles/CMakeOutput.log 2>/dev/null || true
