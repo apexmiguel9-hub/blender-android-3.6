@@ -109,6 +109,18 @@ jobs:
             '#define BUILD_LINKFLAGS ""' \
             '#define BUILD_SYSTEM "CMake"' \
             > "${{ github.workspace }}/blender36/source/creator/buildinfo.h"
+      - name: Patch NDK version and add IMB_ffmpeg_init stub
+        run: |
+          set -ex
+          cd OBlender
+          # Fix NDK version: NDK 27+ required for ARMv8.1 atomics used by our .a
+          find app/build.gradle -exec sed -i "s|ndkVersion .*|ndkVersion \x2727.3.13750724\x27|" {} +
+          echo "NDK version after patch:"
+          grep "ndkVersion" app/build.gradle
+          cd app/src/main/cpp
+          # Add IMB_ffmpeg_init stub (not compiled in .a since ffmpeg not available for Android)
+          printf "\x0a#include <stdio.h>\x0avoid IMB_ffmpeg_init(void) { fprintf(stderr, \"IMB_ffmpeg_init: stub\n\"); }\x0a" >> native-lib.cpp
+          echo "IMB_ffmpeg_init stub added to native-lib.cpp"
 
       - name: Setup Java 11
         uses: actions/setup-java@v4
