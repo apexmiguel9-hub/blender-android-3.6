@@ -37,11 +37,11 @@ jobs:
           echo "Copied $COUNT .a files to $LIB_DIR"
           ls -la "$LIB_DIR" | head -20
 
-      - name: Setup Java
+      - name: Setup Java 11
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '17'
+          java-version: '11'
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
