@@ -60,7 +60,20 @@ jobs:
           restore-keys: |
             gradle-${{ runner.os }}-
 
+      - name: Generate Gradle wrapper JAR
+        run: |
+          if [ ! -f OBlender/gradle/wrapper/gradle-wrapper.jar ]; then
+            echo "gradle-wrapper.jar not found, generating..."
+            # Generate wrapper using gradle (pre-installed on runner)
+            cd OBlender
+            gradle wrapper --gradle-version=8.0.2 2>&1 || \
+            gradle wrapper 2>&1 || \
+            echo "WARNING: could not generate gradle wrapper"
+            cd ..
+          fi
+
       - name: Make gradlew executable
+
         run: chmod +x OBlender/gradlew
 
       - name: Build Release APK
