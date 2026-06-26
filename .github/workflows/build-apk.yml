@@ -109,12 +109,107 @@ jobs:
             '#define BUILD_LINKFLAGS ""' \
             '#define BUILD_SYSTEM "CMake"' \
             > "${{ github.workspace }}/blender36/source/creator/buildinfo.h"
-      - name: Patch NDK version and fix compatibility
+      - name: Recompile IlmBase libraries for NDK 27 ABI compat
+        run: |
+          set -ex
+          WS="${{ github.workspace }}"
+          # The pre-built IlmThread/Iex/Imath/OpenEXR .so files from lib-android_arm64
+          # were compiled with Clang 9 (NDK r21) and are ABI-incompatible with
+          # NDK 27's libc++. We recompile them from source with NDK 27.
+          # Download Imath 3.0.1
+          curl -sL -o /tmp/imath.tar.gz \
+            "https://github.com/AcademySoftwareFoundation/Imath/archive/refs/tags/v3.0.1.tar.gz"
+          tar xzf /tmp/imath.tar.gz -C /tmp
+          # Build Imath as shared lib
+          cmake -S /tmp/imath-3.0.1 -B /tmp/imath-build \
+            -DCMAKE_TOOLCHAIN_FILE="$ANDROID_NDK_HOME/build/cmake/android.toolchain.cmake" \
+            -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-24 \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_SHARED_LIBS=ON -DBUILD_TESTING=OFF \
+            -DIMATH_BUILD_SHARED=ON -DIMATH_BUILD_STATIC=OFF \
+            -DCMAKE_CXX_FLAGS="-fPIC -Wno-error" \
+            -DCMAKE_C_FLAGS="-fPIC -Wno-error" \
+            -DCMAKE_INSTALL_PREFIX="/tmp/imath-install"
+          cmake --build /tmp/imath-build -j$(nproc)
+          cmake --install /tmp/imath-build --prefix /tmp/imath-install
+          echo "Imath 3.0.1 compiled"
+          # Compile zlib for Android (needed by OpenEXR for ZIP compression)
+          curl -sL -o /tmp/zlib.tar.gz \
+            "https://github.com/madler/zlib/archive/refs/tags/v1.2.13.tar.gz"
+          tar xzf /tmp/zlib.tar.gz -C /tmp
+          cd /tmp/zlib-1.2.13
+          export CC="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android24-clang"
+          export CXX="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android24-clang++"
+          export AR="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar"
+          export RANLIB="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ranlib"
+          ./configure --prefix=/tmp/zlib-install --static --archs="-target aarch64-linux-android24 -O2 -fPIC"
+          make -j$(nproc)
+          make install
+          echo "zlib compiled for Android"
+          cd /tmp
+          # Backup original .so files before we replace them
+          mkdir -p /tmp/openexr_orig /tmp/imath_orig
+          cp "$WS/lib-android_arm64/OpenExr/lib/"*.so /tmp/openexr_orig/
+          cp "$WS/lib-android_arm64/IMath/lib/"*.so /tmp/imath_orig/
+          echo "Original .so files backed up to /tmp/*_orig/"
+          # Build OpenEXR (includes IlmThread, Iex, OpenEXR, OpenEXRUtil)
+          curl -sL -o /tmp/openexr.tar.gz \
+            "https://github.com/AcademySoftwareFoundation/openexr/archive/refs/tags/v3.0.1.tar.gz"
+          tar xzf /tmp/openexr.tar.gz -C /tmp
+          cmake -S /tmp/openexr-3.0.1 -B /tmp/openexr-build \
+            -DCMAKE_TOOLCHAIN_FILE="$ANDROID_NDK_HOME/build/cmake/android.toolchain.cmake" \
+            -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-24 \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_SHARED_LIBS=ON -DBUILD_TESTING=OFF \
+            -DOPENEXR_BUILD_TOOLS=OFF -DOPENEXR_BUILD_PYTHON_LIBS=OFF \
+            -DOPENEXR_FORCE_INTERNAL_IMATH=OFF \
+            -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+            -DCMAKE_CXX_FLAGS="-fPIC -Wno-error" \
+            -DCMAKE_C_FLAGS="-fPIC -Wno-error" \
+            -DCMAKE_PREFIX_PATH="/tmp/imath-install" \
+            -DImath_DIR="/tmp/imath-install/lib/cmake/Imath" \
+            -DZLIB_ROOT="/tmp/zlib-install" \
+            -DZLIB_USE_STATIC_LIBS=ON \
+            -DCMAKE_INSTALL_PREFIX="/tmp/openexr-install"
+          if cmake --build /tmp/openexr-build -j$(nproc); then
+            cmake --install /tmp/openexr-build --prefix /tmp/openexr-install
+            echo "OpenEXR compiled successfully"
+            # Copy new .so files
+            find /tmp/openexr-install/lib -name "*.so" -exec cp {} "$WS/lib-android_arm64/OpenExr/lib/" \;
+            find /tmp/imath-install/lib -name "*.so" -exec cp {} "$WS/lib-android_arm64/IMath/lib/" \;
+            echo "Replaced OpenEXR .so files:"
+            ls -la "$WS/lib-android_arm64/OpenExr/lib/" | grep -E "\.so$"
+            echo "Replaced Imath .so files:"
+            ls -la "$WS/lib-android_arm64/IMath/lib/" | grep -E "\.so$"
+          else
+            echo "=== OpenEXR build FAILED ==="
+            tail -30 /tmp/openexr-build/CMakeFiles/CMakeOutput.log 2>/dev/null || true
+            tail -30 /tmp/openexr-build/CMakeFiles/CMakeError.log 2>/dev/null || true
+            echo "Restoring original pre-built .so files..."
+            cp /tmp/openexr_orig/*.so "$WS/lib-android_arm64/OpenExr/lib/"
+            cp /tmp/imath_orig/*.so "$WS/lib-android_arm64/IMath/lib/"
+            echo "WARNING: Using original .so files - IlmThread ABI crash may still occur."
+          fi
+      - name: Patch SDK/NDK version and fix compatibility
         run: |
           set -ex
           cd OBlender
           sed -i "s|ndkVersion .*|ndkVersion '27.3.13750724'|" app/build.gradle
           echo "NDK: $(grep ndkVersion app/build.gradle)"
+          # Set minSdk and targetSdk to 24 for API 24 compatibility
+          sed -i 's/minSdkVersion .*/minSdkVersion 24/' app/build.gradle
+          sed -i 's/targetSdkVersion .*/targetSdkVersion 24/' app/build.gradle
+          echo "SDK: $(grep -E 'minSdk|targetSdk' app/build.gradle)"
+          # Spanish permission rationale dialog
+          sed -i 's/获取读写文件权限/Permiso de almacenamiento/g' \
+            app/src/main/java/com/epai/oblender/StartupActivity.java
+          sed -i 's/确定/Conceder/g' \
+            app/src/main/java/com/epai/oblender/StartupActivity.java
+          sed -i 's/取消/Denegar/g' \
+            app/src/main/java/com/epai/oblender/StartupActivity.java
+          sed -i 's/存储权限获取失败,不能保存文件/Permiso denegado. No se pueden guardar archivos/g' \
+            app/src/main/java/com/epai/oblender/StartupActivity.java
+          echo "Permission dialog: Spanish"
           cd app/src/main/cpp
           sed -i 's|ALooper_pollAll|ALooper_pollOnce|g' native-lib.cpp
           echo "ALooper_pollAll -> ALooper_pollOnce"
