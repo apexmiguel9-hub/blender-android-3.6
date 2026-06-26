@@ -142,7 +142,7 @@ jobs:
           echo "Audaspace stubs added"
           sed -i '/add_definitions(-DWITH_LIBMV)/a add_definitions(-DBOOST_NO_CXX98_FUNCTION_BASE)' CMakeLists.txt
           # Add OpenMP to linker flags (for __kmpc_* / omp_* symbols)
-          echo 'set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -fopenmp")' >> CMakeLists.txt
+          printf '\nset(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -fopenmp")\n' >> CMakeLists.txt
           echo "OpenMP flag added to linker"
           # Patch Boost headers for C++17 / NDK 27 compatibility
           # Fix std::unary_function usage in boost/container_hash/hash.hpp
