@@ -15,6 +15,17 @@ jobs:
     steps:
       - name: Checkout app repo
         uses: actions/checkout@v4
+      - name: Checkout Blender source (headers for APK compilation)
+        uses: actions/checkout@v4
+        with:
+          repository: dshawshank/Blender-android_arm64
+          ref: blender-v3.6-release
+          path: blender36
+      - name: Checkout prebuilt libraries (lib-android_arm64)
+        uses: actions/checkout@v4
+        with:
+          repository: dshawshank/lib-android_arm64
+          path: lib-android_arm64
 
       - name: Download Blender .a libraries
         uses: actions/download-artifact@v4
@@ -25,7 +36,7 @@ jobs:
           run-id: ${{ github.event.client_payload.run_id }}
           github-token: ${{ secrets.GH_TOKEN }}
 
-      - name: Copy .a files to CMake lib directory
+      - name: Copy .a files and patch CMakeLists.txt paths
         run: |
           set -ex
           LIB_DIR="OBlender/app/src/main/cpp/../.cxx/cmake/release/arm64-v8a/lib"
@@ -35,7 +46,14 @@ jobs:
           cp blender-libs/libcycles_*.a "$LIB_DIR/" 2>/dev/null || true
           COUNT=$(find "$LIB_DIR" -name "*.a" | wc -l)
           echo "Copied $COUNT .a files to $LIB_DIR"
-          ls -la "$LIB_DIR" | head -20
+          ls -la "$LIB_DIR" | head -5
+          # Patch hardcoded Windows paths in CMakeLists.txt
+          cd OBlender/app/src/main/cpp
+          sed -i "s|D:/FreeProjects/Blender/Blender/Blender-android_arm64|${{ github.workspace }}/blender36|g" CMakeLists.txt
+          sed -i "s|D:/FreeProjects/Blender/Blender/lib-android_arm64|${{ github.workspace }}/lib-android_arm64|g" CMakeLists.txt
+          sed -i "s|D:/FreeProjects/Blender/Blender/Utilities-android_arm64/MakeBlender/app/\.cxx/cmake/release/arm64-v8a/|${{ github.workspace }}/OBlender/app/.cxx/cmake/release/arm64-v8a/|g" CMakeLists.txt
+          sed -i "s|D:/FreeProjects/Blender/Blender/Utilities-android_arm64/MakeBlender/app/\.cxx/cmake/debug/arm64-v8a/|${{ github.workspace }}/OBlender/app/.cxx/cmake/debug/arm64-v8a/|g" CMakeLists.txt
+          echo "CMakeLists.txt patched successfully"
 
       - name: Setup Java 11
         uses: actions/setup-java@v4
