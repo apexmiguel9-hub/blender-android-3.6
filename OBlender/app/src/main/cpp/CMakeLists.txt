@@ -42,6 +42,9 @@ add_library(blender SHARED
         )
 
 target_include_directories(blender PUBLIC
+        D:/FreeProjects/Blender/Blender/lib-android_arm64/boost/boost_1_71_0/
+        D:/FreeProjects/Blender/Blender/lib-android_arm64/OpenVDB/include/
+        D:/FreeProjects/Blender/Blender/lib-android_arm64/Tbb/include/tbb-master/include/
         ${blenderLibDir}/source/creator/
         ${blenderLibDir}/intern/
         ${blenderLibDir}/intern/clog/
