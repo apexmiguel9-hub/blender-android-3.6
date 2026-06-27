@@ -1,6 +1,8 @@
 name: Build Minimal Blender APK
 
 on:
+  push:
+    branches: [pruebas]
   workflow_dispatch:
     inputs:
       run_id:
@@ -37,7 +39,7 @@ jobs:
           name: blender-android-arm64
           path: blender-engine
           repository: apexmiguel9-hub/BlenderMobile
-          run-id: ${{ inputs.run_id || '28054847968' }}
+          run-id: ${{ inputs.run_id || '28278005050' }}
           github-token: ${{ secrets.GH_TOKEN }}
 
       - name: Find and copy libblender.so to jniLibs
