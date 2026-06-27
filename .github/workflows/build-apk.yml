@@ -31,6 +31,17 @@ jobs:
           repository: dshawshank/lib-android_arm64
           path: lib-android_arm64
 
+
+      - name: Patch CMakeLists.txt paths
+        run: |
+          set -ex
+          WS=${{ github.workspace }}
+          cd OBlender/app/src/main/cpp
+          sed -i "s|D:/FreeProjects/Blender/Blender/Blender-android_arm64|$WS/blender36|g" CMakeLists.txt
+          sed -i "s|D:/FreeProjects/Blender/Blender/lib-android_arm64|$WS/lib-android_arm64|g" CMakeLists.txt
+          sed -i "s|D:/FreeProjects/Blender/Blender/Utilities-android_arm64/MakeBlender/app/\.cxx/cmake/release/arm64-v8a/source/creator|$WS/blender36/source/creator|g" CMakeLists.txt
+          echo "CMakeLists.txt patched"
+
       - name: Generate buildinfo.h stub
         run: |
           set -ex
@@ -135,6 +146,14 @@ jobs:
             cp /tmp/imath_orig/*.so "$WS/lib-android_arm64/IMath/lib/"
             echo "WARNING: Using original .so files - IlmThread ABI crash may still occur."
           fi
+      - name: Download libblender.so from BlenderMobile
+        uses: actions/download-artifact@v4
+        with:
+          name: blender-android-arm64
+          path: blender-engine-so
+          repository: apexmiguel9-hub/BlenderMobile
+          github-token: ${{ secrets.GH_TOKEN }}
+
       - name: Patch SDK/NDK version and fix compatibility
         run: |
           set -ex
@@ -217,14 +236,6 @@ jobs:
           name: libblender-so-stripped
           path: |
             **/libblender.so
-
-      - name: Download libblender.so from BlenderMobile
-        uses: actions/download-artifact@v4
-        with:
-          name: blender-android-arm64
-          path: blender-engine-so
-          repository: apexmiguel9-hub/BlenderMobile
-          github-token: ${{ secrets.GH_TOKEN }}
 
       - name: Copy libblender.so to jniLibs
         run: |
