@@ -116,7 +116,7 @@ target_include_directories(blender PUBLIC
 # Import Blender engine shared library (from BlenderMobile CI)
 add_library(blender_engine SHARED IMPORTED)
 set_target_properties(blender_engine PROPERTIES IMPORTED_LOCATION
-        ${CMAKE_CURRENT_SOURCE_DIR}/../jniLibs/${ANDROID_ABI}/libblender_engine.so)
+        ${CMAKE_CURRENT_SOURCE_DIR}/prebuilt/${ANDROID_ABI}/libblender_engine.so)
 
 target_link_libraries(blender blender_engine)
 
