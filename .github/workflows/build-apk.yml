@@ -31,68 +31,6 @@ jobs:
           repository: dshawshank/lib-android_arm64
           path: lib-android_arm64
 
-      - name: Download Blender .a libraries
-        uses: actions/download-artifact@v4
-        with:
-          name: blender-a-libraries
-          path: blender-libs
-          repository: apexmiguel9-hub/Blender3.6_arm64
-          run-id: ${{ inputs.run_id || github.event.client_payload.run_id || '28250301432' }}
-          github-token: ${{ secrets.GH_TOKEN }}
-
-      - name: Copy .a files and patch CMakeLists.txt paths
-        run: |
-          set -ex
-          WS=${{ github.workspace }}
-          # Copy to a separate directory (NOT .cxx which Gradle may recreate)
-          LIB_DIR="blender-static-libs"
-          mkdir -p "$LIB_DIR"
-          cp blender-libs/libbf_*.a "$LIB_DIR/" 2>/dev/null || true
-          cp blender-libs/libextern_*.a "$LIB_DIR/" 2>/dev/null || true
-          cp blender-libs/libcycles_*.a "$LIB_DIR/" 2>/dev/null || true
-          COUNT=$(find "$LIB_DIR" -name "*.a" | wc -l)
-          echo "Copied $COUNT .a files to $LIB_DIR"
-          # Verify a key file exists
-          ls -la "$LIB_DIR/libbf_modifiers.a"
-          # Update CMakeLists.txt to point to our static dir
-          cd OBlender/app/src/main/cpp
-          sed -i "s|D:/FreeProjects/Blender/Blender/Blender-android_arm64|$WS/blender36|g" CMakeLists.txt
-          sed -i "s|D:/FreeProjects/Blender/Blender/lib-android_arm64|$WS/lib-android_arm64|g" CMakeLists.txt
-          # Replace the utilities/source/creator include path
-          sed -i "s|D:/FreeProjects/Blender/Blender/Utilities-android_arm64/MakeBlender/app/\.cxx/cmake/release/arm64-v8a/source/creator|$WS/blender36/source/creator|g" CMakeLists.txt
-          # Replace the lib dir with our blender-static-libs (NOT .cxx)
-          sed -i "s|D:/FreeProjects/Blender/Blender/Utilities-android_arm64/MakeBlender/app/\.cxx/cmake/release/arm64-v8a/lib|$WS/blender-static-libs|g" CMakeLists.txt
-          sed -i "s|D:/FreeProjects/Blender/Blender/Utilities-android_arm64/MakeBlender/app/\.cxx/cmake/debug/arm64-v8a/lib|$WS/blender-static-libs|g" CMakeLists.txt
-          echo "CMakeLists.txt patched"
-          grep "blenderLibLibDirRelease" CMakeLists.txt
-          grep "IMPORTED_LOCATION" CMakeLists.txt | head -3
-      - name: Create stubs for missing .a files
-        run: |
-          set -ex
-          LIB_DIR="${{ github.workspace }}/blender-static-libs"
-          # Parse BlenderLibNames from CMakeLists.txt and create stubs for missing .a
-          cd OBlender/app/src/main/cpp
-          IN_BLOCK=0
-          while IFS= read -r line; do
-            if echo "$line" | grep -q "SET(BlenderLibNames"; then
-              IN_BLOCK=1
-              continue
-            fi
-            if [ "$IN_BLOCK" = 1 ] && echo "$line" | grep -q ")"; then
-              break
-            fi
-            if [ "$IN_BLOCK" = 1 ]; then
-              lib=$(echo "$line" | xargs)
-              if [ -n "$lib" ]; then
-                libfile="$LIB_DIR/lib${lib}.a"
-                if [ ! -f "$libfile" ]; then
-                  echo "Creating stub: lib${lib}.a"
-                  ar crs "$libfile"
-                fi
-              fi
-            fi
-          done < CMakeLists.txt
-          echo "Stub creation complete"
       - name: Generate buildinfo.h stub
         run: |
           set -ex
@@ -230,60 +168,6 @@ jobs:
             '}' > creator/imb_ffmpeg_stub.cc
           sed -i '/creator\/creator_signals.cc/a creator/imb_ffmpeg_stub.cc' CMakeLists.txt
           echo "IMB_ffmpeg_init stub added"
-          # Auto-generate stubs for undefined AUD_* symbols from .a files
-          find "${{ github.workspace }}/blender-static-libs" -name "*.a" \
-            -exec nm -u {} \; 2>/dev/null \
-            | grep -o 'AUD_[a-zA-Z0-9_]*' \
-            | sort -u > /tmp/aud_symbols.txt
-          COUNT=$(wc -l < /tmp/aud_symbols.txt)
-          echo "Found $COUNT AUD_ symbols via nm"
-          cd "${{ github.workspace }}/OBlender/app/src/main/cpp"
-          {
-            echo '#include <stdio.h>'
-            echo 'extern "C" {'
-            while read -r sym; do
-              echo "void ${sym}() { fprintf(stderr, \"stub: ${sym}\\\\n\"); }"
-            done < /tmp/aud_symbols.txt
-            echo '}'
-            echo 'extern "C" void PyInit_aud(void) { fprintf(stderr, "stub: PyInit_aud\\n"); }'
-          } > creator/audaspace_stubs.cc
-          echo "Created stubs for $COUNT AUD_ symbols + PyInit_aud"
-          sed -i '/creator\/imb_ffmpeg_stub.cc/a creator/audaspace_stubs.cc' CMakeLists.txt
-          echo "Audaspace stubs added"
-          sed -i '/add_definitions(-DWITH_LIBMV)/a add_definitions(-DBOOST_NO_CXX98_FUNCTION_BASE)' CMakeLists.txt
-          # Create OpenMP stubs instead of linking libomp.so
-          printf '%s\n' \
-            'extern "C" {' \
-            '#include <stdio.h>' \
-            'int __kmpc_global_thread_num(void *loc) { return 0; }' \
-            'void __kmpc_fork_call(void *loc, int argc, void *microtask, ...) { fprintf(stderr, "stub: __kmpc_fork_call\\n"); }' \
-            'void __kmpc_serialized_parallel(void *loc, int gtid) { fprintf(stderr, "stub: __kmpc_serialized_parallel\\n"); }' \
-            'void __kmpc_end_serialized_parallel(void *loc, int gtid) { fprintf(stderr, "stub: __kmpc_end_serialized_parallel\\n"); }' \
-            'void __kmpc_for_static_init_4(void *loc, int gtid, int *last, int *lwr, int *upr, int *stride, int incr, int chunk) { fprintf(stderr, "stub: __kmpc_for_static_init_4\\n"); }' \
-            'void __kmpc_for_static_fini(void *loc, int gtid) { fprintf(stderr, "stub: __kmpc_for_static_fini\\n"); }' \
-            'void __kmpc_push_num_threads(void *loc, int gtid, int num) { fprintf(stderr, "stub: __kmpc_push_num_threads\\n"); }' \
-            'void __kmpc_dispatch_init_8(void *loc, int gtid, int incr, long long chunk) { fprintf(stderr, "stub: __kmpc_dispatch_init_8\\n"); }' \
-            'int __kmpc_dispatch_next_8(void *loc, int gtid, int *last, long long *lwr, long long *upr, long long *stride) { fprintf(stderr, "stub: __kmpc_dispatch_next_8\\n"); return 0; }' \
-            'int omp_get_max_threads(void) { return 1; }' \
-            'int omp_get_thread_num(void) { return 0; }' \
-            'int omp_get_num_threads(void) { return 1; }' \
-            '}' > creator/omp_stubs.cc
-          echo "OpenMP stubs file created"
-          sed -i '/creator\/audaspace_stubs.cc/a creator/omp_stubs.cc' CMakeLists.txt
-          echo "OpenMP stubs added"
-          # Patch Boost headers for C++17 / NDK 27 compatibility
-          # Fix std::unary_function usage in boost/container_hash/hash.hpp
-          HASH="$WS/lib-android_arm64/boost/boost_1_71_0/boost/container_hash/hash.hpp"
-          sed -i 's/struct hash_base : std::unary_function<T, std::size_t> {};/struct hash_base { typedef T argument_type; typedef std::size_t result_type; };/' "$HASH"
-          echo "Fixed boost/container_hash/hash.hpp"
-          # Fix enum-constexpr-conversion warning in boost/mpl/aux_/integral_wrapper.hpp
-          IW="$WS/lib-android_arm64/boost/boost_1_71_0/boost/mpl/aux_/integral_wrapper.hpp"
-          printf '%s\n' '#pragma clang diagnostic push' \
-            '#pragma clang diagnostic ignored "-Wenum-constexpr-conversion"' > /tmp/iw_prefix.hpp
-          cat /tmp/iw_prefix.hpp "$IW" > /tmp/iw_patched.hpp && cp /tmp/iw_patched.hpp "$IW"
-          echo '#pragma clang diagnostic pop' >> "$IW"
-          echo "Patched boost/mpl/aux_/integral_wrapper.hpp"
-          echo "Boost compat flag added"
       - name: Cache Gradle
         uses: actions/cache@v4
         with:
@@ -333,3 +217,20 @@ jobs:
           name: libblender-so-stripped
           path: |
             **/libblender.so
+
+      - name: Download libblender.so from BlenderMobile
+        uses: actions/download-artifact@v4
+        with:
+          name: blender-android-arm64
+          path: blender-engine-so
+          repository: apexmiguel9-hub/BlenderMobile
+          github-token: ${{ secrets.GH_TOKEN }}
+
+      - name: Copy libblender.so to jniLibs
+        run: |
+          set -ex
+          mkdir -p ${{ github.workspace }}/OBlender/app/src/main/jniLibs/arm64-v8a
+          cp ${{ github.workspace }}/blender-engine-so/lib/libblender.so \
+            ${{ github.workspace }}/OBlender/app/src/main/jniLibs/arm64-v8a/libblender_engine.so
+          echo "libblender_engine.so copied to jniLibs:"
+          ls -la ${{ github.workspace }}/OBlender/app/src/main/jniLibs/arm64-v8a/libblender_engine.so
