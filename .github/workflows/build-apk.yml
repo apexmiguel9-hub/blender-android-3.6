@@ -160,7 +160,7 @@ jobs:
         run: |
           set -ex
           mkdir -p ${{ github.workspace }}/OBlender/app/src/main/jniLibs/arm64-v8a
-          SO_FILE=$$(find ${{ github.workspace }}/blender-engine-so/ -name 'libblender.so' | head -1); cp "$$SO_FILE" \
+          SO_FILE=$(find ${{ github.workspace }}/blender-engine-so/ -name 'libblender.so' | head -1); cp "$SO_FILE" \
             ${{ github.workspace }}/OBlender/app/src/main/jniLibs/arm64-v8a/libblender_engine.so
           echo "libblender_engine.so copied to jniLibs:"
           ls -la ${{ github.workspace }}/OBlender/app/src/main/jniLibs/arm64-v8a/libblender_engine.so
