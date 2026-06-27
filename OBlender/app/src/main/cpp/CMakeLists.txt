@@ -83,7 +83,7 @@ set_target_properties(blender_engine PROPERTIES IMPORTED_LOCATION
 
 target_link_libraries(blender
         blender_engine
-        -Wl,--allow-shlib-undefined
+        -Wl,--undefined-ok
         GLESv3
         GLESv2
         EGL
