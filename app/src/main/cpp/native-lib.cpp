@@ -8,6 +8,7 @@
 #include <cstring>
 #include <cstdio>
 
+#include "BLI_path_util.h"
 #include "creator/creator.h"
 
 #define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "BlenderNative", __VA_ARGS__))
@@ -129,7 +130,7 @@ Java_com_blender_android_MainActivity_nativeOnSurfaceCreated(JNIEnv *env, jclass
     }
     gNativeWindow = window;
 
-    setNativeWindow((void*)window);
+    initialLib((void*)window);
 
     BLI_setenv("XDG_CACHE_HOME", strHomePath);
     BLI_setenv("HOME", strHomePath);
