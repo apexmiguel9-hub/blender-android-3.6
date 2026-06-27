@@ -208,6 +208,13 @@ jobs:
           sed -i 's/targetSdkVersion .*/targetSdkVersion 24/' app/build.gradle
           sed -i 's/minSdkVersion 28/minSdkVersion 24/' OBLFiles/build.gradle
           echo "SDK: $(grep -E 'minSdk|targetSdk' app/build.gradle)"
+          # Add jniLibs source set so native libs are packaged
+          sed -i "/compileOptions {/a\
+    sourceSets {\
+        main {\
+            jniLibs.srcDirs = ['src/main/jniLibs']\
+        }\
+    }" app/build.gradle
           # Spanish permission rationale dialog
           sed -i 's/获取读写文件权限/Permiso de almacenamiento/g' \
             app/src/main/java/com/epai/oblender/StartupActivity.java
