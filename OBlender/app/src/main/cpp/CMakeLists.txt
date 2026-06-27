@@ -15,7 +15,7 @@ project("blender")
 # Gradle automatically packages shared libraries with your APK.
 
 # Select C++17 as the standard for C++ projects.
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 14)
 # If C++17 is not available, downgrading to an earlier standard is NOT OK.
 set(CMAKE_CXX_STANDARD_REQUIRED OFF)
 # Do not enable compiler specific language extensions.
