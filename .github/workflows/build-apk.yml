@@ -203,13 +203,7 @@ jobs:
           set -ex
           WS=${{ github.workspace }}
           cd OBlender/app/src/main/cpp
-          cat >> creator/usd_stub.cc << XEOF
-#include <stdio.h>
-extern "C" void USD_ensure_plugin_path_registered()
-{
-    fprintf(stderr, "USD_ensure_plugin_path_registered: stub\n");
-}
-XEOF
+          printf '%%s\n' '#include <stdio.h>'             'extern "C" void USD_ensure_plugin_path_registered() {'             '    fprintf(stderr, "USD_ensure_plugin_path_registered: stub\n");'             '}' > creator/usd_stub.cc
           sed -i '/creator\/imb_ffmpeg_stub.cc/a creator/usd_stub.cc' CMakeLists.txt
           echo "USD_ensure_plugin_path_registered stub added"
       - name: Cache Gradle
