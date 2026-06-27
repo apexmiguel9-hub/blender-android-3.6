@@ -42,6 +42,7 @@ add_library(blender SHARED
         )
 
 target_include_directories(blender PUBLIC
+        ${blenderLibDir}/source/creator/
         ${blenderLibDir}/intern/
         ${blenderLibDir}/intern/clog/
         ${blenderLibDir}/intern/ghost/
