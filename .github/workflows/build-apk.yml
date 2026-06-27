@@ -159,11 +159,11 @@ jobs:
       - name: Copy libblender.so to jniLibs
         run: |
           set -ex
-          mkdir -p ${{ github.workspace }}/OBlender/app/src/main/jniLibs/arm64-v8a
+          mkdir -p ${{ github.workspace }}/OBlender/app/src/main/cpp/prebuilt/arm64-v8a
           SO_FILE=$(find ${{ github.workspace }}/blender-engine-so/ -name 'libblender.so' | head -1); cp "$SO_FILE" \
-            ${{ github.workspace }}/OBlender/app/src/main/jniLibs/arm64-v8a/libblender_engine.so
+            ${{ github.workspace }}/OBlender/app/src/main/cpp/prebuilt/arm64-v8a/libblender_engine.so
           echo "libblender_engine.so copied to jniLibs:"
-          ls -la ${{ github.workspace }}/OBlender/app/src/main/jniLibs/arm64-v8a/libblender_engine.so
+          ls -la ${{ github.workspace }}/OBlender/app/src/main/cpp/prebuilt/arm64-v8a/libblender_engine.so
       - name: Patch SDK/NDK version and fix compatibility
         run: |
           set -ex
