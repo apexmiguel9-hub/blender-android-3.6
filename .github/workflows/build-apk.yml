@@ -28,7 +28,7 @@ jobs:
       - name: Checkout prebuilt libraries (.so files and headers)
         uses: actions/checkout@v4
         with:
-          repository: dshawshank/lib-android_arm64
+          repository: apexmiguel9-hub/lib-android_arm64
           path: lib-android_arm64
 
       - name: Download libblender.so from BlenderMobile CI
