@@ -1,0 +1,126 @@
+name: Build Minimal Blender APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: "BlenderMobile build run ID (libblender.so artifact)"
+        required: false
+        type: string
+
+jobs:
+  build:
+    name: Build APK
+    runs-on: ubuntu-22.04
+    timeout-minutes: 120
+
+    steps:
+      - name: Checkout app repo
+        uses: actions/checkout@v4
+
+      - name: Checkout Blender source (headers for compilation)
+        uses: actions/checkout@v4
+        with:
+          repository: dshawshank/Blender-android_arm64
+          ref: blender-v3.6-release
+          path: blender36
+
+      - name: Checkout prebuilt libraries (.so files and headers)
+        uses: actions/checkout@v4
+        with:
+          repository: dshawshank/lib-android_arm64
+          path: lib-android_arm64
+
+      - name: Download libblender.so from BlenderMobile CI
+        uses: actions/download-artifact@v4
+        with:
+          name: blender-android-arm64
+          path: blender-engine
+          repository: apexmiguel9-hub/BlenderMobile
+          run-id: ${{ inputs.run_id || '28054847968' }}
+          github-token: ${{ secrets.GH_TOKEN }}
+
+      - name: Find and copy libblender.so to jniLibs
+        run: |
+          set -ex
+          JNILIB="app/src/main/jniLibs/arm64-v8a"
+          mkdir -p "$JNILIB"
+          ENGINE=$(find blender-engine -name "libblender.so" -type f | head -1)
+          if [ -z "$ENGINE" ]; then
+            echo "ERROR: libblender.so not found in artifact!"
+            exit 1
+          fi
+          cp "$ENGINE" "$JNILIB/libblender.so"
+          echo "Engine .so: $(ls -lh "$JNILIB/libblender.so")"
+
+      - name: Generate buildinfo.h
+        run: |
+          set -ex
+          cat > blender36/source/creator/buildinfo.h << 'ENDHEADER'
+            #define BUILD_DATE "2024-01-01"
+            #define BUILD_TIME "00:00:00"
+            #define BUILD_HASH "stub"
+            #define BUILD_COMMIT_TIMESTAMP 0
+            #define BUILD_BRANCH "stub"
+            #define BUILD_PLATFORM "Android"
+            #define BUILD_TYPE "Release"
+            #define BUILD_CFLAGS ""
+            #define BUILD_CXXFLAGS ""
+            #define BUILD_LINKFLAGS ""
+            #define BUILD_SYSTEM "CMake"
+          ENDHEADER
+
+      - name: Patch Boost headers for C++17 compat
+        run: |
+          set -ex
+          BOOST="${{ github.workspace }}/lib-android_arm64/boost/boost_1_71_0"
+          HASH="$BOOST/boost/container_hash/hash.hpp"
+          sed -i 's/struct hash_base : std::unary_function<T, std::size_t> {};/struct hash_base { typedef T argument_type; typedef std::size_t result_type; };/' "$HASH"
+          IW="$BOOST/boost/mpl/aux_/integral_wrapper.hpp"
+          printf '%s\n' '#pragma clang diagnostic push' \
+            '#pragma clang diagnostic ignored "-Wenum-constexpr-conversion"' > /tmp/iw_prefix.hpp
+          cat /tmp/iw_prefix.hpp "$IW" > /tmp/iw_patched.hpp && cp /tmp/iw_patched.hpp "$IW"
+          echo '#pragma clang diagnostic pop' >> "$IW"
+
+      - name: Copy all extern .so files from lib-android_arm64 to jniLibs
+        run: |
+          set -ex
+          JNILIB="app/src/main/jniLibs/arm64-v8a"
+          mkdir -p "$JNILIB"
+          find lib-android_arm64 -name "*.so" -type f -exec cp {} "$JNILIB/" \;
+          echo "Total .so files in jniLibs: $(ls "$JNILIB"/*.so 2>/dev/null | wc -l)"
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-
+
+      - name: Ensure gradle wrapper exists
+        run: |
+          set -ex
+          if [ ! -f gradle/wrapper/gradle-wrapper.jar ]; then
+            mkdir -p gradle/wrapper
+            curl -sL -o gradle/wrapper/gradle-wrapper.jar \
+              "https://raw.githubusercontent.com/gradle/gradle/v7.5.0/gradle/wrapper/gradle-wrapper.jar"
+          fi
+          if [ ! -f gradlew ]; then
+            curl -sL -o gradlew \
+              "https://raw.githubusercontent.com/gradle/gradle/v7.5.0/gradlew"
+          fi
+          chmod +x gradlew
+
+      - name: Build Debug APK
+        run: |
+          set -ex
+          ./gradlew assembleDebug --no-daemon -x lint 2>&1
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: blender-apk
+          path: app/build/outputs/apk/debug/*.apk

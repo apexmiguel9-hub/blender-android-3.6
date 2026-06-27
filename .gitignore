@@ -1,0 +1,9 @@
+.gradle/
+build/
+app/build/
+local.properties
+*.iml
+.idea/
+.DS_Store
+# .so files are downloaded in CI from lib-android_arm64 and BlenderMobile
+app/src/main/jniLibs/
