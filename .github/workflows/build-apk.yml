@@ -173,6 +173,8 @@ jobs:
           # Set minSdk and targetSdk to 24 for API 24 compatibility
           sed -i 's/minSdkVersion .*/minSdkVersion 24/' app/build.gradle
           sed -i 's/targetSdkVersion .*/targetSdkVersion 24/' app/build.gradle
+          # Add packaging pickFirst to resolve libblender_engine.so conflict
+          sed -i '/android {/a\    packagingOptions {\n        pickFirst \"lib/arm64-v8a/libblender_engine.so\"\n    }' app/build.gradle
           sed -i 's/minSdkVersion 28/minSdkVersion 24/' OBLFiles/build.gradle
           echo "SDK: $(grep -E 'minSdk|targetSdk' app/build.gradle)"
           # Add jniLibs source set so native libs are packaged
