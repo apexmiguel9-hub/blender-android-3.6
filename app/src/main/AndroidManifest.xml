@@ -20,14 +20,20 @@
         android:requestLegacyExternalStorage="true">
 
         <activity
-            android:name=".MainActivity"
+            android:name=".StartupActivity"
             android:exported="true"
-            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
-            android:screenOrientation="sensorLandscape">
+            android:screenOrientation="sensorLandscape"
+            android:theme="@style/Theme.Blender">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+        </activity>
+        <activity
+            android:name=".MainActivity"
+            android:exported="false"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
+            android:screenOrientation="sensorLandscape">
         </activity>
     </application>
 </manifest>

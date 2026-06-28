@@ -154,9 +154,9 @@ Java_com_blender_android_MainActivity_nativeOnSurfaceCreated(JNIEnv *env, jclass
     char pythonPath[256] = {0};
     strcat(pythonPath, strConfigPath);
     strcat(pythonPath, "python");
-    BLI_setenv("PYTHONPATH", pythonPath);
     BLI_setenv("PYTHONHOME", pythonPath);
-    LOGI("=== PYTHON set");
+    BLI_setenv("PYTHONDONTWRITEBYTECODE", "1");
+    LOGI("=== PYTHONHOME set");
 
     char blenderPath[256] = {0};
     strcat(blenderPath, strHomePath);
