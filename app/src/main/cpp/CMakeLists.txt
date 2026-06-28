@@ -23,6 +23,7 @@ add_definitions(-DWITH_INTERNATIONAL)
 add_definitions(-DWITH_GMP)
 add_definitions(-DWITH_OPENIMAGEDENOISE)
 add_definitions(-DWITH_BUILDINFO_HEADER)
+
 add_definitions(-DWITH_USD)
 add_definitions(-DWITH_LIBMV)
 add_definitions(-DBOOST_NO_CXX98_FUNCTION_BASE)
@@ -66,7 +67,6 @@ include_directories(
 )
 
 add_library(blender_jni SHARED
-    creator/buildinfo.c
     creator/creator.cc
     creator/creator_args.cc
     creator/creator_signals.cc
