@@ -395,6 +395,7 @@ void* mainBlenderInitial(int argc,
 
   LOGI("=== mainBlenderInitial: CTX_create");
   C = CTX_create();
+  LOGI("=== mainBlenderInitial: CTX_done");
 
 #ifdef WITH_PYTHON_MODULE
 #  ifdef __APPLE__
@@ -406,9 +407,12 @@ void* mainBlenderInitial(int argc,
 #endif
 
 #ifdef WITH_BINRELOC
+  LOGI("=== mainBlenderInitial: br_init");
   br_init(NULL);
+  LOGI("=== mainBlenderInitial: br_init_done");
 #endif
 
+  LOGI("=== mainBlenderInitial: libmv_initLogging");
 #ifdef WITH_LIBMV
   libmv_initLogging(argv[0]);
 #elif defined(WITH_CYCLES_LOGGING)
@@ -419,6 +423,7 @@ void* mainBlenderInitial(int argc,
   gmp_blender_init_allocator();
 #endif
 
+  LOGI("=== mainBlenderInitial: main_callback_setup");
   main_callback_setup();
 
 #if defined(__APPLE__) && !defined(WITH_PYTHON_MODULE) && !defined(WITH_HEADLESS)
@@ -441,12 +446,16 @@ void* mainBlenderInitial(int argc,
 #endif
 
   /* Initialize path to executable. */
+  LOGI("=== mainBlenderInitial: BKE_appdir_program_path_init");
   BKE_appdir_program_path_init(argv[0]);
 
+  LOGI("=== mainBlenderInitial: BLI_threadapi_init");
   BLI_threadapi_init();
 
+  LOGI("=== mainBlenderInitial: DNA_sdna_current_init");
   DNA_sdna_current_init();
 
+  LOGI("=== mainBlenderInitial: BKE_blender_globals_init");
   BKE_blender_globals_init(); /* blender.c */
 
   BKE_cpp_types_init();
@@ -472,25 +481,30 @@ void* mainBlenderInitial(int argc,
 
   main_args_setup(C, ba);
 
+  LOGI("=== mainBlenderInitial: before ARG_PASS_ENVIRONMENT");
   /* Begin argument parsing, ignore leaks so arguments that call #exit
    * (such as '--version' & '--help') don't report leaks. */
   MEM_use_memleak_detection(false);
 
   /* Parse environment handling arguments. */
   BLI_args_parse(ba, ARG_PASS_ENVIRONMENT, NULL, NULL);
+  LOGI("=== mainBlenderInitial: after ARG_PASS_ENVIRONMENT");
 
 #else
   /* Using preferences or user startup makes no sense for #WITH_PYTHON_MODULE. */
   G.factory_startup = true;
 #endif
 
+  LOGI("=== mainBlenderInitial: BKE_appdir_init");
   /* After parsing #ARG_PASS_ENVIRONMENT such as `--env-*`,
    * since they impact `BKE_appdir` behavior. */
   BKE_appdir_init();
 
+  LOGI("=== mainBlenderInitial: BLI_task_scheduler_init");
   /* After parsing number of threads argument. */
   BLI_task_scheduler_init();
 
+  LOGI("=== mainBlenderInitial: IMB_init");
   /* Initialize sub-systems that use `BKE_appdir.h`. */
   IMB_init();
 
@@ -500,8 +514,10 @@ void* mainBlenderInitial(int argc,
 
 #ifndef WITH_PYTHON_MODULE
   /* First test for background-mode (#Global.background) */
+    LOGI("=== mainBlenderInitial: ARG_PASS_SETTINGS");
   BLI_args_parse(ba, ARG_PASS_SETTINGS, NULL, NULL);
 
+  LOGI("=== mainBlenderInitial: main_signal_setup");
   main_signal_setup();
 #endif
 
@@ -510,11 +526,15 @@ void* mainBlenderInitial(int argc,
   IMB_ffmpeg_init();
 #endif
 
+  LOGI("=== mainBlenderInitial: RNA_init");
   /* After #ARG_PASS_SETTINGS arguments, this is so #WM_main_playanim skips #RNA_init. */
   RNA_init();
 
+  LOGI("=== mainBlenderInitial: RE_engines_init");
   RE_engines_init();
+  LOGI("=== mainBlenderInitial: BKE_node_system_init");
   BKE_node_system_init();
+  LOGI("=== mainBlenderInitial: BKE_particle_init_rng");
   BKE_particle_init_rng();
   /* End second initialization. */
 
@@ -543,7 +563,9 @@ void* mainBlenderInitial(int argc,
   BLI_args_parse(ba, ARG_PASS_SETTINGS_FORCE, NULL, NULL);
 #endif
 
+  LOGI("=== mainBlenderInitial: WM_init");
   WM_init(C, argc, (const char **)argv);
+  LOGI("=== mainBlenderInitial: WM_init_done");
 
   /* Need to be after WM init so that userpref are loaded. */
   RE_engines_init_experimental();
