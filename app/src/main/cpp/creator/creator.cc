@@ -7,6 +7,8 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <android/log.h>
+#define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "BlenderNative", __VA_ARGS__))
 #include "creator.h"
 
 char strHomePath[256]={0};
@@ -286,6 +288,7 @@ void* mainBlenderInitial(int argc,
 #endif
 )
 {
+  LOGI("=== mainBlenderInitial: start");
   bContext *C;
 
 #ifndef WITH_PYTHON_MODULE
@@ -301,6 +304,7 @@ void* mainBlenderInitial(int argc,
 
   /* Ensure we free data on early-exit. */
   struct CreatorAtExitData app_init_data = {NULL};
+  LOGI("=== mainBlenderInitial: atexit_register");
   BKE_blender_atexit_register(callback_main_atexit, &app_init_data);
 
   /* Un-buffered `stdout` makes `stdout` and `stderr` better synchronized, and helps
@@ -377,6 +381,7 @@ void* mainBlenderInitial(int argc,
 #endif
 
   /* Initialize logging. */
+  LOGI("=== mainBlenderInitial: CLG_init");
   CLG_init();
   CLG_fatal_fn_set(callback_clg_fatal);
   
@@ -388,6 +393,7 @@ void* mainBlenderInitial(int argc,
   CLG_output_set(logFile);
   CLG_backtrace_fn_set(callback_clg_fatal);
 
+  LOGI("=== mainBlenderInitial: CTX_create");
   C = CTX_create();
 
 #ifdef WITH_PYTHON_MODULE
