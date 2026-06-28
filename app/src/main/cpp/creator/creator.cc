@@ -128,8 +128,8 @@ char strConfigPath[256]={0};
 struct ApplicationState app_state = {
     .signal =
         {
-            .use_crash_handler = true,
-            .use_abort_handler = true,
+            .use_crash_handler = false,
+            .use_abort_handler = false,
         },
     .exit_code_on_error =
         {
