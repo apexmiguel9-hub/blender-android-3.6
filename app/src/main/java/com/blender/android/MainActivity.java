@@ -31,7 +31,13 @@ public class MainActivity extends AppCompatActivity {
     private boolean surfaceReady = false;
 
     static {
-        System.loadLibrary("blender_jni");
+        try {
+            System.loadLibrary("blender_jni");
+            android.util.Log.i("BlenderJava", "Library loaded successfully");
+        } catch (UnsatisfiedLinkError e) {
+            android.util.Log.e("BlenderJava", "Failed to load blender_jni: " + e.getMessage());
+            throw e;
+        }
     }
 
     @Override
