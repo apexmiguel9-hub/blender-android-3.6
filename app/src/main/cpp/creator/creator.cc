@@ -564,8 +564,6 @@ void* mainBlenderInitial(int argc,
 #endif
 
   LOGI("=== mainBlenderInitial: WM_init");
-  // Set background mode to prevent GHOST from trying to create X11/Wayland display
-  G.background = true;
   WM_init(C, argc, (const char **)argv);
   LOGI("=== mainBlenderInitial: WM_init_done");
 

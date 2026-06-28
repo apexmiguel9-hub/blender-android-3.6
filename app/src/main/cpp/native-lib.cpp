@@ -161,9 +161,9 @@ Java_com_blender_android_MainActivity_nativeOnSurfaceCreated(JNIEnv *env, jclass
     char blenderPath[256] = {0};
     strcat(blenderPath, strHomePath);
     strcat(blenderPath, "blender");
-    const char *argv[] = {blenderPath, "--factory-startup", "-d"};
+    const char *argv[] = {blenderPath, "--background", "--factory-startup", "-d"};
     LOGI("=== Calling mainBlenderInitial...");
-    gContext = mainBlenderInitial(3, argv);
+    gContext = mainBlenderInitial(4, argv);
     LOGI("=== Blender initialized, context: %p", gContext);
 }
 
