@@ -107,8 +107,7 @@ Java_com_blender_android_MainActivity_nativeInit(JNIEnv *env, jclass clazz,
     strHomePath[sizeof(strHomePath) - 1] = '\0';
     strConfigPath[sizeof(strConfigPath) - 1] = '\0';
 
-    LOGI("Home path: %s", strHomePath);
-    LOGI("Config path: %s", strConfigPath);
+    LOGI("=== nativeInit - Home: %s, Config: %s", strHomePath, strConfigPath);
 
     env->ReleaseStringUTFChars(homePath, home);
     env->ReleaseStringUTFChars(configPath, config);
@@ -117,6 +116,7 @@ Java_com_blender_android_MainActivity_nativeInit(JNIEnv *env, jclass clazz,
 JNIEXPORT void JNICALL
 Java_com_blender_android_MainActivity_nativeOnSurfaceCreated(JNIEnv *env, jclass clazz,
                                                               jobject surface) {
+    LOGI("=== nativeOnSurfaceCreated - start");
     ANativeWindow *window = ANativeWindow_fromSurface(env, surface);
     if (!window) {
         LOGE("Failed to get native window from surface");
@@ -128,35 +128,43 @@ Java_com_blender_android_MainActivity_nativeOnSurfaceCreated(JNIEnv *env, jclass
         ANativeWindow_release(window);
         return;
     }
+    LOGI("=== EGL context created");
     gNativeWindow = window;
 
     initialLib((void*)window);
+    LOGI("=== initialLib done");
 
+    LOGI("=== Setting env vars...");
     BLI_setenv("XDG_CACHE_HOME", strHomePath);
     BLI_setenv("HOME", strHomePath);
+    LOGI("=== HOME set");
 
     char datafilesPath[256] = {0};
     strcat(datafilesPath, strConfigPath);
     strcat(datafilesPath, "4.0/config/datafiles");
     BLI_setenv("BLENDER_SYSTEM_DATAFILES", datafilesPath);
+    LOGI("=== DATAFILES set");
 
     char scriptsPath[256] = {0};
     strcat(scriptsPath, strConfigPath);
     strcat(scriptsPath, "scripts");
     BLI_setenv("BLENDER_SYSTEM_SCRIPTS", scriptsPath);
+    LOGI("=== SCRIPTS set");
 
     char pythonPath[256] = {0};
     strcat(pythonPath, strConfigPath);
     strcat(pythonPath, "python");
     BLI_setenv("PYTHONPATH", pythonPath);
     BLI_setenv("PYTHONHOME", pythonPath);
+    LOGI("=== PYTHON set");
 
     char blenderPath[256] = {0};
     strcat(blenderPath, strHomePath);
     strcat(blenderPath, "blender");
     const char *argv[] = {blenderPath, "--factory-startup", "-d"};
+    LOGI("=== Calling mainBlenderInitial...");
     gContext = mainBlenderInitial(3, argv);
-    LOGI("Blender initialized, context: %p", gContext);
+    LOGI("=== Blender initialized, context: %p", gContext);
 }
 
 JNIEXPORT void JNICALL
