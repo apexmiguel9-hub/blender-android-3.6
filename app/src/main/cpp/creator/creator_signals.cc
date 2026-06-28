@@ -214,6 +214,11 @@ static void sig_handle_abort(int signum)
 
 void main_signal_setup(void)
 {
+#if defined(__ANDROID__)
+  /* On Android, setting signal handlers (especially SIGSEGV) conflicts with
+   * the ART runtime which uses SIGSEGV for GC and null pointer detection. */
+  (void)app_state;
+#else
   if (app_state.signal.use_crash_handler) {
 #  ifdef WIN32
     SetUnhandledExceptionFilter(windows_exception_handler);
