@@ -564,6 +564,8 @@ void* mainBlenderInitial(int argc,
 #endif
 
   LOGI("=== mainBlenderInitial: WM_init");
+  // Set background mode to prevent GHOST from trying to create X11/Wayland display
+  G.background = true;
   WM_init(C, argc, (const char **)argv);
   LOGI("=== mainBlenderInitial: WM_init_done");
 
@@ -613,20 +615,8 @@ void* mainBlenderInitial(int argc,
 #endif
 
 #ifndef WITH_PYTHON_MODULE
-  if (G.background) {
-    /* Using window-manager API in background-mode is a bit odd, but works fine. */
-    WM_exit(C, G.is_break ? EXIT_FAILURE : EXIT_SUCCESS);
-  }
-  else {
-    /* Shows the splash as needed. */
-    WM_init_splash_on_startup(C);
-
-//    WM_main(C);
-      Wm_loop_pre(C);
-  }
-  /* Neither #WM_exit, #WM_main return, this quiets CLANG's `unreachable-code-return` warning. */
-  BLI_assert_unreachable();
-
+  LOGI("=== mainBlenderInitial: init complete, returning context");
+  (void)ba;
 #endif /* !WITH_PYTHON_MODULE */
 
   return C;
